@@ -1,45 +1,96 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from lxml import html
-import requests
-import urllib.request  
+import requests 
 from bs4 import BeautifulSoup 
 import pandas as pd
-def scrape():
-# Set up Chrome driver service
-    service = Service('chromedriver.exe')  # Replace with the path to your chromedriver executable
-    driver = webdriver.Chrome(service=service)
+import psutil
+import urllib.request 
 
-# Define the mother URL
-# mother_url = 'https://admission.wsu.edu/academics/fos/Public/area.castle?id=41819'  # Replace with the actual mother URL
-    mother_url = 'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate'  # Replace with the actual mother URL
+def get_initial_system_usage():
+    # Get initial RAM and CPU usage
+    initial_ram_usage = psutil.virtual_memory().used
+    initial_cpu_usage = psutil.cpu_percent()
+    return initial_ram_usage, initial_cpu_usage
 
-# Define the keywords
-    keywords = ['/undergraduate']# Replace with your desired keywords
+def get_final_system_usage(initial_ram_usage, initial_cpu_usage):
+    # Get final RAM and CPU usage
+    final_ram_usage = psutil.virtual_memory().used
+    final_cpu_usage = psutil.cpu_percent()
+    return final_ram_usage - initial_ram_usage, final_cpu_usage - initial_cpu_usage
 
-# Open the mother URL
-    driver.get(mother_url)
+def get_initial_network_usage():
+    # Get initial network usage
+    initial_net_io = psutil.net_io_counters()
+    initial_bytes_sent = initial_net_io.bytes_sent
+    initial_bytes_received = initial_net_io.bytes_recv
+    return initial_bytes_sent, initial_bytes_received
 
-# Find all anchor elements
-    anchors = driver.find_elements(By.TAG_NAME, 'a')
+def get_final_network_usage(initial_bytes_sent, initial_bytes_received):
+    # Get final network usage
+    final_net_io = psutil.net_io_counters()
+    final_bytes_sent = final_net_io.bytes_sent
+    final_bytes_received = final_net_io.bytes_recv
+    return final_bytes_sent - initial_bytes_sent, final_bytes_received - initial_bytes_received
 
-# Extract URLs containing the keywords
-    matching_urls = []
-    for anchor in anchors:
-        href = anchor.get_attribute('href')
-        if href and any(keyword in href for keyword in keywords):
-            matching_urls.append(href)
+#use a filtered method in given in the webpage
+def crawl_UG():
+    urls = [
+        'https://www.abertay.ac.uk/course-search/?studyLevel=Undergraduate&subject=Accounting%20and%20Finance',
+        'https://www.abertay.ac.uk/course-search/?studyLevel=Undergraduate&subject=Biomedical%20Science%20and%20Forensic%20Sciences',
+        'https://www.abertay.ac.uk/course-search/?studyLevel=Undergraduate&subject=Business%20Management%20and%20Marketing',
+        'https://www.abertay.ac.uk/course-search/?studyLevel=Undergraduate&subject=Civil%20Engineering',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Computing%20Ethical%20Hacking%20Cybersecurity',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Counselling',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Criminology',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Food%20Science%20Nutrition%20and%20Health',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Law',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Nursing',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Psychology',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Sport%20Health%20and%20Exercise%20Science',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Undergraduate&subject=Video%20Games'
+    ]
 
-    for url in matching_urls:
-        print(url + '/n')
-# Save matching URLs to a text file
-    with open('linksAbertay.txt', 'w') as file:
-        for url in matching_urls:
-            file.write(url + '\n')
+    for url in urls:
+        reqs = requests.get(url)
+        soup = BeautifulSoup(reqs.text, 'html.parser')
 
-# Close the driver
-    driver.quit()
+        for link in soup.find_all('a', href=True):
+            href = link.get('href')
+            if href and href.startswith("https://search.abertay.ac.uk/s/redirect?"):
+                print(href, link.text.strip())
+                print()
+
+def crawl_masters():
+        urls = [
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Accounting%20and%20Finance',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Business%20Management%20and%20Marketing',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Civil%20Engineering',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Computing%20Ethical%20Hacking%20Cybersecurity',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Counselling',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Food%20Science%20Nutrition%20and%20Health',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Law',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Psychology',
+        'https://www.abertay.ac.uk/course-search?studyLevel=Postgraduate%20Taught&subject=Video%20Games'
+    ]
+
+        all_data = {'url': [], 'text': []}
+    
+        for url in urls:
+            reqs = requests.get(url)
+            soup = BeautifulSoup(reqs.text, 'html.parser')
+
+            data = {'url': [], 'text': []}
+            for link in soup.find_all('a', href=True):
+                href = link.get('href')
+                if href and href.startswith("https://search.abertay.ac.uk/s/redirect?"):
+                
+                    print(href, link.text.strip())
+                    data['url'].append(href)
+                    data['text'].append(link.text.strip())
+        
+            all_data['url'].extend(data['url'])
+            all_data['text'].extend(data['text'])
+
+        df = pd.DataFrame(all_data)
+        df.to_excel('mastersurl.xlsx', index=False)
 
 def extract_content(url):
     try:
@@ -47,11 +98,12 @@ def extract_content(url):
 # parsing the html file 
         htmlParse = BeautifulSoup(html, 'html.parser') 
         previous_text = None  # Variable to store previous text 
+        
 # getting all the paragraphs 
         for para in htmlParse.find_all("td"):
             text = para.get_text().strip()
     
-            if "Points" and previous_text == "International Baccalaureate":
+            if previous_text == "Higher (standard entry)":
                 points = text.split()[0]
                 return points
                 
@@ -59,7 +111,7 @@ def extract_content(url):
     except Exception as e:
         return "Null"
             
-import pandas as pd
+
 
 def extract_Summary(urls):
     data = {'URL': [], 'Summary': []}
@@ -89,24 +141,77 @@ def extract_Summary(urls):
     df = pd.DataFrame(data)
     df.to_excel('scraped_data.xlsx', index=False)
 
+def check_existing():
+    with open('PHD northtexas.txt') as file:
+          urls = [line.strip() for line in file.readlines()]
+    session = requests.Session()
+
+   # Check each URL
+    for url in urls:
+       try:
+           headers = {
+               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+               'Referer': url
+           }
+           response = session.get(url, headers=headers, allow_redirects=False)
 
 
+           if response.status_code == 200:
+               status = "Working Fine"
+               redirected_to = ""
+           elif 300 <= response.status_code < 400:
+               status = f"Redirected ({response.status_code})"
+               redirected_to = response.headers.get('Location', 'Unknown')
+           elif response.status_code == 403:
+               status = "Access Forbidden"
+               redirected_to = ""
+           else:
+               status = f"Returned Status Code {response.status_code}"
+               redirected_to = ""
+           print(f"{url}: {status}")  # Print result in the terminal
+
+
+       except Exception as e:
+           status = f"Threw an Exception: {str(e)}"
+           redirected_to = ""
+           print(f"{url}: {status}", redirected_to)
+
+def check_sheets():
+    df1 = pd.read_excel('masters.xlsx')
+    df2 = pd.read_excel('masters1.xlsx')
+
+    difference = df1[df1!=df2]
+    print (difference)
 
 file_path = 'linksAbertay.txt'
 
 # Open the file and read URLs
 with open(file_path, 'r') as file:
-    urls = [line.strip() for line in file.readlines()]
+    urls = file.readlines()
 
-# Call extract_Summary() with the list of URLs
-extract_Summary(urls)
+# Get initial system usage
+initial_ram, initial_cpu = get_initial_system_usage()
 
+# Get initial network usage
+initial_sent, initial_received = get_initial_network_usage()
 # Process each URL
-#for url in urls:
-    #url = url.strip()  # Remove leading/trailing whitespace, including newline characters
-    #content = extract_Summary([url])  #
-    #if content is not None:
-        #print(url + " " + content)
-    #else:
-        #print(url + " Error: Unable to extract content")
+for url in urls:
+    url = url.strip()  # Remove leading/trailing whitespace
+    content = extract_content(url)
+    if content is not None:
+        print(url + " " + content)
+    else:
+        print(url + " Error: Unable to extract content")
 
+# Get final system usage
+final_ram, final_cpu = get_final_system_usage(initial_ram, initial_cpu)
+
+# Print system usage during code execution
+print("RAM Usage during execution: {:.2f} MB".format(final_ram / (1024 * 1024)))
+print("CPU Usage during execution: {:.2f}%".format(final_cpu))
+# Get final network usage
+final_sent, final_received = get_final_network_usage(initial_sent, initial_received)
+
+# Print network usage during code execution
+print("Data Uploaded during execution: {:.2f} MB".format(final_sent / (1024 * 1024)))
+print("Data Downloaded during execution: {:.2f} MB".format(final_received / (1024 * 1024)))
