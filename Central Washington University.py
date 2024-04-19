@@ -233,3 +233,21 @@ def PG_entry():
 
 for url, name in scrape_details():
     print(f"{url}, {name}")
+            
+def scholarships():
+    page = requests.get('https://www.cwu.edu/admissions-aid/apply/additional-resources/international-financial-resources.php')
+
+    # Parsing the page
+    # (We need to use page.content rather than
+    # page.text because html.fromstring implicitly
+    # expects bytes as input.)
+    tree = html.fromstring(page.content)
+        # Get element using XPath
+    UG_elements = tree.xpath('/html/body/div/main/div/div/div[1]/section[2]/div/ul[2]/li[1]')
+    PG_elements = tree.xpath('/html/body/div/main/div/div/div[1]/section[2]/div/ul[2]/li[2]')
+
+    UG_text = [elements.text_content().strip() for elements in UG_elements]
+    PG_text = [elements.text_content().strip() for elements in PG_elements]
+
+    print(UG_text)
+    print(PG_text)
