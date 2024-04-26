@@ -69,7 +69,7 @@ def check_existing():
 
 
 def extract_information():
-    with open('TUS.txt', 'r') as file:
+    with open('linksTUS.txt', 'r') as file:
         urls = file.readlines()
 
     # Clean up URLs by removing leading/trailing whitespace and newlines
@@ -99,34 +99,38 @@ def extract_information():
         course_summary = course_summary[0].strip() if course_summary else ""
         requirements = tree.xpath('/html/body/main/div[4]/div/div/div[2]/article/p[1]/text()')
         requirements = requirements[0].strip() if requirements else ""
-        location = tree.xpath('/html/body/main/div[1]/div/div/div[1]/ul/li[2]/p/text()')
+        location = tree.xpath('/html/body/main/div[1]/div/div/div[1]/ul/li[1]/p/text()')
         location = location[0].strip() if location else ""
         # Append the extracted information to the details list
-        details.append((name, year, course_code, mode, course_summary, requirements, location))
-
+        details.append((url,name, year, course_code, mode, course_summary, requirements, location))
+    df = pd.DataFrame(details, columns=['URL','Name', 'Year', 'Course Code', 'Mode', 'Course Summary', 'Requirements', 'Location'])
+    df.to_excel('extracted_data1.xlsx', index=False)
     # Return the list of extracted information for each URL
-    return details
+    return df
 
 def scrape_existing():
     # Read the URLs from the text file
-    
-    with open('TUS.txt', 'r') as file:
+    with open('linksTUS.txt', 'r') as file:
         urls = file.readlines()
     urls = [url.strip() for url in urls]
-# Create lists to store extracted information
+    
+    # Create a list to store extracted information
     data = []
     for url in urls:
         url = url.strip()  # Remove leading/trailing whitespace
-    # Extract information from the current URL
+        
+        # Extract information from the current URL
         name, year, course_code, mode, course_summary, requirements, location = extract_information(url)
-    # Append extracted information as a row to the data list
+        
+        # Append extracted information as a row to the data list
         data.append([name, year, course_code, mode, course_summary, requirements, location])
 
-# Create a DataFrame using the extracted data and specify column names
+    # Create a DataFrame using the extracted data and specify column names
     df = pd.DataFrame(data, columns=['Name', 'Year', 'Course Code', 'Mode', 'Course Summary', 'Requirements', 'Location'])
 
-# Export the DataFrame to an Excel file
+    # Export the DataFrame to an Excel file
     df.to_excel('extracted_data1.xlsx', index=False)
+    
     return urls
 
 def check_exisiting():
@@ -146,6 +150,12 @@ def check_missing():
     new_urls = check_new()  # Call check_new function to get new URLs
     missing = existing_urls - new_urls  # Subtract existing URLs from new URLs to find missing ones
     return missing
+def check_sheets():
+    df1 = pd.read_excel('masters.xlsx')
+    df2 = pd.read_excel('masters1.xlsx')
+
+    difference = df1[df1!=df2]
+    print (difference)
 
 if __name__ == '__main__':
     #missing_urls = check_missing()
