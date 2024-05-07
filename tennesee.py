@@ -92,6 +92,33 @@ def check_sheets():
 
     difference = df1[df1!=df2]
     print (difference)
+
+def get_fees():
+
+    # Request the page
+    page = requests.get('https://www.tntech.edu/bursar/tuition/index.php')
+    tree = html.fromstring(page.content)  
+    data = []
+# Get element using XPath
+    fees_UG = tree.xpath('/html/body/main/div[2]/div/div[1]/div/div/div/table[2]/tbody/tr[5]/td[2]')
+    fees_ug_text = [text.text_content().strip() for text in fees_UG]
+    fees_PG = tree.xpath('/html/body/main/div[2]/div/div[1]/div/div/div/table[4]/tbody/tr[5]/td[2]')
+    fees_pg_text = [text.text_content().strip() for text in fees_PG]
+    print(fees_ug_text)
+    print(fees_pg_text)
+    today = date.today()
+    data.append({'Date':today, 'UG':fees_ug_text,'PG':fees_pg_text})
+    df = pd.DataFrame(data)
+    excel_file = 'fees.xlsx'
+
+    try:
+
+        df_existing = pd.read_excel(excel_file)
+        df_combined = pd.concat([df_existing, df], ignore_index=True)
+    except FileNotFoundError:
+        df_combined = df
+    df_combined.to_excel(excel_file, index=False)
+    print(df)
 # Define the file containing URLs
 file_path = 'tennessee test urls'
 
