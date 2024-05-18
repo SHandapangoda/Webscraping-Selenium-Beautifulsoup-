@@ -86,10 +86,22 @@ def crawl():
             for link in soup.find_all('a'):
                 href = link.get('href')
                 if href and any(keyword in href for keyword in keywords):
+
+                    if href.startswith("https://www.uwa.edu.au/") or href.startswith("https://"):
+                        full_url = href
+                    else:
+                        full_url = "https://www.uwa.edu.au/" + href.lstrip('/')
+                    if full_url not in unique_hrefs:  # Check if the full URL is not already in the set
+                        unique_hrefs.add(full_url)  # Add the full URL to the set
+                        file.write(full_url + '\n')  # Write the URL to the file
+                        print(full_url)
+
+
                     if href not in unique_hrefs:  # Check if the href value is not already in the set
                         unique_hrefs.add(href)  # Add the href value to the set
                         full_url = "https://www.uwa.edu.au/" + href
                         file.write(full_url + '\n')  # Write the URL to the file
                         print(full_url)
 
-extract()
+crawl()
+
