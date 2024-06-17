@@ -68,7 +68,7 @@ def process_url(url):
 
         outcome = "No"
 
-    return {'Name': name, 'Locations': ', '.join(locations), 'Summary': summary, 'Awards': ', '.join(award), 'Outcome': outcome}
+    return {'URL':url,'Name': name, 'Locations': ', '.join(locations), 'Summary': summary, 'Awards': ', '.join(award), 'Outcome': outcome}
 
 
 def read_urls_from_file(file_path):
@@ -76,8 +76,59 @@ def read_urls_from_file(file_path):
         urls = [line.strip() for line in file.readlines() if line.strip()]
     return urls
 
+def check_Exsisiting_Urls(File):
+   # Get the base name of the text file
+   text_file_name = File
+   
+   # Read URLs from file
+   with open(text_file_name, "r") as file:
+       urls = [line.strip() for line in file.readlines()]
+
+   # Create a session to handle cookies
+   session = requests.Session()
+
+   # Check each URL
+   for url in urls:
+       try:
+           headers = {
+               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+               'Referer': url
+           }
+           response = session.get(url, headers=headers, allow_redirects=False)
+
+
+           if response.status_code == 200:
+               status = "Working Fine"
+               redirected_to = ""
+           elif 300 <= response.status_code < 400:
+               status = f"Redirected ({response.status_code})"
+               redirected_to = response.headers.get('Location', 'Unknown')
+           elif response.status_code == 403:
+               status = "Access Forbidden"
+               redirected_to = ""
+           else:
+               status = f"Returned Status Code {response.status_code}"
+               redirected_to = ""
+           print(f"{url}: {status}")  # Print result in the terminal
+
+
+       except Exception as e:
+           status = f"Threw an Exception: {str(e)}"
+           redirected_to = ""
+           print(f"{url}: {status}", redirected_to)
+
+def check_sheets():
+    df1 = pd.read_excel('loyalist_data.xlsx')
+    df2 = pd.read_excel('latest.xlsx')
+
+    difference = df1[df1!=df2]
+    print (difference)
+
 if __name__ == '__main__':
     start_time = time.time()
+
+    toronto()
+    main_uni()
 
     # Specify the path to the text file containing URLs
     urls_file_path = 'C:/Users/User/PycharmProjects/pythonProject/linksloyalist.txt'
