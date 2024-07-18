@@ -84,35 +84,40 @@ def get_details():
         for url in file:
             urls.append(url.strip())
 
-
+    data = []
     for url in urls:
         try:
             response = requests.get(url)
             response.raise_for_status()  # Raise error for bad response status
-            
+
             tree = html.fromstring(response.content)
-            
+            names = tree.xpath('/html/body/div[2]/div/div[1]/div[2]/div[1]/div[1]/div[2]/p[2]')
+
+            if names:
+                for name in names:
+                    name.text_content().strip()
+            else:
+                print(f"No matching elements found for URL: {url}")
             # Example XPath query to find multiple elements
             starts = tree.xpath('/html/body/div[2]/div/div[1]/div[2]/div[1]/div[3]/div[2]/p[2]')
             
             if starts:
                 for start in starts:
-                    print(start.text_content().strip())
+                    start.text_content().strip()
             else:
                 print(f"No matching elements found for URL: {url}")
-            urls = tree.xpath('/html/body/div[2]/div/div[1]/div[2]/div[2]/a')
-
-            if urls:
-                for url in urls:
-                    print(urls.text_content().strip())
-            else:
-                print(f"No matching elements found for URL: {url}")
+            
+            data.append({'url': url,'name': name.text_content().strip(), 'start': start.text_content().strip()})
         except requests.RequestException as e:
             print(f"Error fetching URL {url}: {str(e)}")
         except Exception as e:
             print(f"Error processing URL {url}: {str(e)}")
 
+    df = pd.DataFrame(data)
+    print(df)
 
+
+    
 def get_url():
     mother_url = ["https://www.oxfordinternational.com/search?universities%5B%5D=5569&search=&study_levels%5B%5D=611&page=1"]
     matching_urls = []
