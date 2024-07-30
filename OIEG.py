@@ -14,10 +14,16 @@ import json
 # Initialize Chrome driver
 
 
+
 def get_url():
     driver = webdriver.Firefox()
 
     mother_url = ["https://www.oxfordinternational.com/search?universities%5B%5D=5569&search=&study_levels%5B%5D=1207&study_levels%5B%5D=611&study_levels%5B%5D=584&page=1","https://www.oxfordinternational.com/search?universities%5B%5D=5569&search=&study_levels%5B%5D=1207&study_levels%5B%5D=611&study_levels%5B%5D=584&page=2","https://www.oxfordinternational.com/search?universities%5B%5D=5569&search=&study_levels%5B%5D=1207&study_levels%5B%5D=611&study_levels%5B%5D=584&page=3","https://www.oxfordinternational.com/search?universities%5B%5D=5569&search=&study_levels%5B%5D=1207&study_levels%5B%5D=611&study_levels%5B%5D=584&page=4","https://www.oxfordinternational.com/search?universities%5B%5D=5569&search=&study_levels%5B%5D=1207&study_levels%5B%5D=611&study_levels%5B%5D=584&page=5"]
+
+def get_url():
+    
+    mother_url = ["https://www.oxfordinternational.com/search?universities%5B%5D=5569&search=&study_levels%5B%5D=611&page=1"]
+
     matching_urls = []
     keywords = ["https://www.oxfordinternational.com/degrees/"]
     for url in mother_url:
@@ -36,6 +42,7 @@ def get_url():
 
                 #print(href)
         matching_urls = list(set(matching_urls))
+
 
 #saving the extracted URLs
     with open('oieglinks07-30.txt', 'w') as file:
@@ -63,6 +70,20 @@ def get_ref_url():
   # Strip newline characters and add to the list
     '''
     
+
+        print(matching_urls)
+        return matching_urls
+
+def get_ref_url():
+    urls = get_ref_url()
+    urls = []
+    '''
+    # Read URLs from the file
+    with open('urls.txt', 'r') as file:
+        for url in file:
+            urls.append(url.strip())  # Strip newline characters and add to the list
+'''
+
     matching_urls = []
     keywords = ["https://www.ravensbourne.ac.uk"]
 
@@ -99,17 +120,21 @@ def get_ref_url():
 # get the details of the main University and save to JSON
 
 def get_details_main():
+
     urls = []
     #save with the main University URLs
     with open('oiegmainlinks.txt', 'r') as file:
         for url in file:
             urls.append(url.strip())
+    urls = get_ref_url()
+
     data = []
 
     for url in urls:
         try:
             response = requests.get(url)
             response.raise_for_status()  # Raise error for bad response status
+
             tree = html.fromstring(response.content)
             soup = BeautifulSoup(response.text, 'html.parser')
             name = tree.cssselect('#block-entityviewcontent > div > div > div > h1')
@@ -132,14 +157,31 @@ def get_details_main():
                         int_fee_text = text.split("5 semesters:")[1].strip().replace('FT','').strip().replace('£', '').strip().replace(',','').strip()
                         print(url,int_fee_text)
   
+
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            entry = soup.find_all('div', class_='border border-solid border-color-black-10 mb-2')
+            fees = soup.find_all('span', class_='c-course-overview-item__field')
+            
+            if fees and len(fees) >= 5:
+                fees_value = fees[4].get_text().strip()
+            else:
+                fees_value = 'Not found'
+
+
             for div in entry:
                 title = div.find('h3').text.strip()
                 content_paragraphs = div.find('div', class_='wysiwyg').find_all('p')
                 
                 if title == 'Entry requirements':
                     content = "\n".join([paragraph.text.strip() for paragraph in content_paragraphs])
+
             data.append({'Main_URL': url, 'Name': name[0].text_content().strip(), 'Fees': int_fee_text, 'Entry': content})
           
+
+                    data.append({'URL': url, 'Fees': fees_value, 'Title': title, 'Entry': content})
+
+
         except requests.RequestException as e:
             print(f"Error fetching URL {url}: {str(e)}")
     #print(urls)
@@ -149,6 +191,7 @@ def get_details_main():
     df.to_json('main2024-07-30.json')
     return df
 
+
 #get details of the OIEG and save to JSON file 
 def get_details():
     urls = []
@@ -157,6 +200,12 @@ def get_details():
     with open('oieglinks.txt', 'r') as file:
         for url in file:
             urls.append(url.strip())
+
+    return data
+
+def get_details():
+    urls = get_ref_url()
+
     data = []
 
     for url in urls:
@@ -229,6 +278,7 @@ def compare_json_files(file1, file2, output_excel):
     # Merge DataFrames on 'Main_URL'
     merged_df = pd.merge(df1, df2, on='Main_URL', suffixes=('_old', '_new'), how='outer', indicator=True)
 
+
     # Find differences
     changes = merged_df[merged_df['_merge'] != 'both']
     differences = merged_df[merged_df['_merge'] == 'both']
@@ -248,4 +298,24 @@ def compare_json_files(file1, file2, output_excel):
 
 
 compare_json_files('main2024-07-30.json', 'main2024-08-30.json', 'comparison_output.xlsx')
+
+
+    return data
+
+def export_to_excel():
+    # Get data from both functions
+    details_main = get_details_main()
+    details = get_details()
+
+    # Convert data to DataFrames
+    df_main = pd.DataFrame(details_main)
+    df = pd.DataFrame(details)
+
+    # Export DataFrames to Excel
+    with pd.ExcelWriter('details.xlsx') as writer:
+        df_main.to_excel(writer, sheet_name='Main Details', index=False)
+        df.to_excel(writer, sheet_name='Other Details', index=False)
+
+# Call function to export details to Excel
+export_to_excel()
 
