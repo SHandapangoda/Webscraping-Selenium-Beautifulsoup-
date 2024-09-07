@@ -27,49 +27,47 @@ def toronto():
 
 
 def main_uni():
-    url = 'https://loyalistcollege.com/programs-and-courses/full-time-programs/'
-    reqs = requests.get(url)
-    soup = BeautifulSoup(reqs.text, 'html.parser')
-    keywords = ["/programs-and-courses"]
-    urls = []
-    for link in soup.find_all('a'):
-        href = link.get('href')
+    base_url = 'https://loyalistcollege.com/learn/programs-list/?intl-stu=yes&location%5B%5D=belleville&delivery%5B%5D=full-time&loc-page='
+    for page_number in range(1, 5):
+        url = base_url + str(page_number)
+        reqs = requests.get(url)
+        soup = BeautifulSoup(reqs.text, 'html.parser')
+        keywords = ["https://loyalistcollege.com/program"]
+        urls = []
+        unique_hrefs = set()
+        for link in soup.find_all('a'):
+            href = link.get('href')
 
-        if href and any(href.startswith(keyword) for keyword in keywords):
-            urls.append(href)
-            print(link.get('href'))
+            if href and any(href.startswith(keyword) for keyword in keywords):
+                if href not in unique_hrefs:  # Check if the URL is already in the set
+                    unique_hrefs.add(href)  # Add the URL to the set
+                    urls.append(href) 
+                    print(link.get('href'))
 
-    with open('linksloyalist.txt', 'w') as file:
-        for url in urls:
-            file.write("https://loyalistcollege.com" + url + '\n')
+ 
+    #with open('linksloyalist.txt', 'w') as file:
+        #for url in urls:
+            #file.write("https://loyalistcollege.com" + url + '\n')
 
 
 def process_url(url):
     # Request the page
-
     page = requests.get(url)
     soup = BeautifulSoup(page.text, 'html.parser')
-    # Parsing the page
     tree = html.fromstring(page.content)
 
     # Get element using XPath
-    name = tree.xpath('/html/body/div[1]/section[2]/h1/text()')
-    summary = tree.xpath('/html/body/div[1]/section[2]/div[2]')
-    summary = [summary.text_content().strip() for summary in summary]
-    award = tree.xpath('/html/body/div[1]/section[2]/div[4]/ul[1]/li[1]/ul')
-    award = [award.text_content().strip() for award in award]
-    location_items = soup.find_all('ul', class_='location-ul')
-    locations = [item.text.strip() for sublist in location_items for item in sublist.find_all('li')]
-    link = soup.find('a', title='international students', href='https://loyalistcollege.com/international/future-international-students/how-to-apply/')
-    if link:
-
-        outcome = "yes"
-    else:
-
-        outcome = "No"
-
-    return {'URL':url,'Name': name, 'Locations': ', '.join(locations), 'Summary': summary, 'Awards': ', '.join(award), 'Outcome': outcome}
-
+    name_elements = tree.xpath('/html/body/div[1]/main/div[1]/div[2]/h1')
+    name = [elem.text_content().strip() for elem in name_elements]
+    summary_elements = tree.xpath('/html/body/div[1]/main/div[1]/div[3]/div[1]/p')
+    summary = [elem.text_content().strip() for elem in summary_elements]
+    award_elements = tree.xpath('/html/body/div[1]/main/div[3]/div[1]/div[1]/div[2]/div')
+    awards = [elem.text_content().strip() for elem in award_elements]
+    duration = tree.xpath('/html/body/div[1]/main/div[3]/div[1]/div[2]/div[2]/div')
+    duration = [duration.text_content().strip() for duration in duration]
+    start_dates = tree.xpath('/html/body/div[1]/main/div[3]/div[1]/div[3]/div[2]/div')
+    start_dates = [start_dates.text_content().strip() for start_dates in start_dates]
+    return {'URL': url, 'Name': name, 'Summary': summary, 'Awards': awards, 'Duration': duration, 'Start': start_dates}
 
 def read_urls_from_file(file_path):
     with open(file_path, 'r') as file:
@@ -118,20 +116,32 @@ def check_Exsisiting_Urls(File):
            print(f"{url}: {status}", redirected_to)
 
 def check_sheets():
-    df1 = pd.read_excel('loyalist_data.xlsx')
-    df2 = pd.read_excel('latest.xlsx')
+    df1 = pd.read_excel('loyalist_data_05_02.xlsx')
+    df2 = pd.read_excel('loyalist_data.xlsx')
+
+    
 
     difference = df1[df1!=df2]
     print (difference)
 
+urls_file_path = 'C:/Users/User/Universities/Loyalist College/links.txt'
+urls = read_urls_from_file(urls_file_path)
+
+# Process each URL individually
+results = [process_url(url) for url in urls]
+
+# Output the results
+for result in results:
+    print(result)
+'''
 if __name__ == '__main__':
     start_time = time.time()
 
-    toronto()
-    main_uni()
+    #toronto()
+    #main_uni()
 
     # Specify the path to the text file containing URLs
-    urls_file_path = 'C:/Users/User/PycharmProjects/pythonProject/linksloyalist.txt'
+    urls_file_path = 'C:/Users/User/Universities/Loyalist College/links.txt'
 
     # Read URLs from the text file
     urls_to_process = read_urls_from_file(urls_file_path)
@@ -147,6 +157,7 @@ if __name__ == '__main__':
     df.to_excel('loyalist_data.xlsx', index=False)
 
     print("loyalist data.xlsx'.")
-
+    check_sheets()
 
     print(f"{(time.time() - start_time):.2f} seconds")
+'''
