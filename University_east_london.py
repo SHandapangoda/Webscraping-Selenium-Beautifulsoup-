@@ -129,7 +129,11 @@ async def get_details():
         '''
             EntryUcas = htmlParse.find_all("div", class_='rich-txt-custom')
             English = htmlParse.find_all("div",class_='rich-txt-custom' )
-            
+            starts = htmlParse.find_all('span', class_='course-details application-type application-type-2')
+            start_text = starts[0].get_text() if starts else "n/a"
+
+            attendance = htmlParse.find_all('span', class_='course-details attendance-type')
+            attendance_text = attendance[4].get_text() if len(attendance) > 4 else "n/a"
             try:
                 duration = htmlParse.find_all("span", id = 'fee-attendance-year-2-1-3-1')
                 if duration and duration[0].get_text() !="":
@@ -137,8 +141,8 @@ async def get_details():
             except IndexError:
                 "n/A"
             #data.append([url.strip(), name[0].get_text() if name else "",])
-            data.append([url.strip(), name[0].get_text() if name else "", summary[0].get_text() if summary else "", Fees,  EntryUcas[2].get_text(), English[3].get_text(), duration])
-    df = pd.DataFrame(data, columns=["url","name", "Summary","Fees","entry","english","duration"])
+            data.append([url.strip(), name[0].get_text() if name else "", summary[0].get_text() if summary else "", Fees,  EntryUcas[2].get_text(), English[3].get_text(), duration, start_text, attendance_text])
+    df = pd.DataFrame(data, columns=["url","name", "Summary","Fees","entry","english","duration","starts","attendance"])
     df.to_excel('extracted_london_masters.xlsx', index=False)
     
 if __name__ == '__main__':
